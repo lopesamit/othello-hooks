@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@mui/material';
-const timer = (ms: number) =>
-  new Promise((res) => setTimeout(res, ms));
+import { bruteForce } from './algorithms/bruteForce';
+import { traversalDFS } from './algorithms/dfs';
+import { traversalBFS } from './algorithms/bfs';
+
+export const ROW = 10;
+export const COL = 10;
 
 export const Board = () => {
   const makeButton = (i: number, j: number, variant: string) => {
@@ -18,10 +22,10 @@ export const Board = () => {
   };
 
   const freshBoard = () => {
-    const board2d = new Array(8)
+    const board2d = new Array(ROW)
       .fill(0)
       .map((a, i) =>
-        new Array(8)
+        new Array(COL)
           .fill(0)
           .map((b, j) => makeButton(i, j, 'outlined')),
       );
@@ -48,25 +52,6 @@ export const Board = () => {
     }
   }
 
-  const bruteForce = async () => {
-    const [startI, startJ] = startPt;
-    const [endI, endJ] = endPt;
-
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        const iStart = i + startI;
-        const jStart = j + startJ;
-
-        if (iStart === endI && jStart === endJ) {
-          break;
-        }
-
-        setBoard(i, j);
-        await timer(100);
-      }
-    }
-  };
-
   useEffect(() => {
     const [i, j] = coordinates;
     if (i !== -1 && j !== -1) {
@@ -90,7 +75,12 @@ export const Board = () => {
       <Button variant="contained" onClick={() => setReset(true)}>
         Reset
       </Button>
-      <Button variant="contained" onClick={() => bruteForce()}>
+      <Button
+        variant="contained"
+        // onClick={() => bruteForce(startPt, endPt, setBoard)}
+        // onClick={() => traversalDFS(startPt, endPt, setBoard)}
+        onClick={() => traversalBFS(startPt, endPt, setBoard)}
+      >
         Start
       </Button>
       {board.map((a, i) => (
