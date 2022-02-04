@@ -1,6 +1,5 @@
 import { ROW, COL } from '../Board';
-const timer = (ms: number) =>
-  new Promise((res) => setTimeout(res, ms));
+import { timer } from './bruteForce';
 
 const directions = [
   [-1, 0], //up
@@ -13,6 +12,7 @@ export const traversalBFS = async function (
   startPt: number[],
   endPt: number[],
   setBoard: Function,
+  milliseconds: number,
 ) {
   const matrix = new Array(ROW)
     .fill(0)
@@ -24,6 +24,7 @@ export const traversalBFS = async function (
 
   const values = [];
   let [startI, startJ] = startPt;
+  const [endI, endJ] = endPt;
 
   const queue = [startPt];
 
@@ -43,7 +44,11 @@ export const traversalBFS = async function (
       continue;
     }
     setBoard(row, col);
-    await timer(10);
+    if (row === endI && col === endJ) {
+      return;
+    }
+
+    await timer(milliseconds);
 
     seen[row][col] = true;
     values.push(matrix[row][col]);

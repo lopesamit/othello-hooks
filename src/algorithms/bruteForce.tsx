@@ -1,12 +1,13 @@
 import { ROW, COL } from '../Board';
 
-const timer = (ms: number) =>
+export const timer = (ms: number) =>
   new Promise((res) => setTimeout(res, ms));
 
 export const bruteForce = async (
   startPt: number[],
   endPt: number[],
   setBoard: Function,
+  milliseconds: number,
 ) => {
   let [startI, startJ] = startPt;
   const [endI, endJ] = endPt;
@@ -25,7 +26,7 @@ export const bruteForce = async (
         return;
       }
       setBoard(iStart, jStart);
-      await timer(100);
+      await timer(milliseconds);
     }
   }
 };
