@@ -1,10 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Slider, Select, MenuItem } from '@mui/material';
+import {
+  Button,
+  Slider,
+  Select,
+  MenuItem,
+  TextField,
+} from '@mui/material';
 import { bruteForce } from './algorithms/bruteForce';
 import { traversalDFS } from './algorithms/dfs';
 import { traversalBFS } from './algorithms/bfs';
 
-type t = typeof Button;
+type BtnColor =
+  | 'inherit'
+  | 'primary'
+  | 'secondary'
+  | 'success'
+  | 'error'
+  | 'info'
+  | 'warning'
+  | undefined;
+
 export const ROW = 10;
 export const COL = 10;
 
@@ -13,7 +28,21 @@ export const Board = () => {
     i: number,
     j: number,
     variant: 'text' | 'outlined' | 'contained' | undefined,
+    color?: BtnColor,
   ) => {
+    if (color) {
+      return (
+        <Button
+          key={j}
+          color={color as any}
+          variant="contained"
+          onClick={() => setCoordinates([i, j])}
+        >
+          {i}
+          {j}
+        </Button>
+      );
+    }
     return (
       <Button
         variant={variant}
@@ -48,26 +77,31 @@ export const Board = () => {
   const [sliderValue, setSliderValue] = useState(0);
   let [steps, setSteps] = useState(0);
 
-  function setBoard(i: number, j: number) {
+  function setBoard(i: number, j: number, color?: BtnColor) {
     board[i][j] = makeButton(i, j, 'contained');
     setBoardState([...board]);
     console.log(startPt);
 
     if (startPt[0] === -1) {
       setStart([i, j]);
+      board[i][j] = makeButton(i, j, 'contained', 'success');
+      setBoardState([...board]);
     } else if (endPt[0] === -1) {
       setEnd([i, j]);
+      board[i][j] = makeButton(i, j, 'contained', 'success');
+      setBoardState([...board]);
     }
     setSteps(steps++);
   }
 
   function callAlgo() {
+    const [startI, startJ] = startPt;
     if (algorithm === 'brute') {
-      bruteForce(startPt, endPt, setBoard, sliderValue);
+      bruteForce([startI, startJ + 1], endPt, setBoard, sliderValue);
     } else if (algorithm === 'bfs') {
-      traversalBFS(startPt, endPt, setBoard, sliderValue);
+      traversalBFS([startI, startJ], endPt, setBoard, sliderValue);
     } else {
-      traversalDFS(startPt, endPt, setBoard, sliderValue);
+      traversalDFS([startI, startJ], endPt, setBoard, sliderValue);
     }
   }
 
@@ -95,16 +129,17 @@ export const Board = () => {
   return (
     <>
       <h2>Select an algorithm</h2>
-      <Select
-        label="algorithm"
+      <TextField
+        label="Algorithm"
         value={algorithm}
         placeholder="Select"
+        select
         onChange={(e) => setAlgorithm(e.target.value as string)}
       >
         <MenuItem value="brute">Brute force</MenuItem>
         <MenuItem value="bfs">Breath first search</MenuItem>
         <MenuItem value="dfs">Depth first search</MenuItem>
-      </Select>
+      </TextField>
 
       <h2>Select starting and ending box</h2>
       <div>Start: {startPt}</div>
