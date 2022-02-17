@@ -1,4 +1,4 @@
-import { ROW, COL } from '../Board';
+import { ROW, COL } from '../components/Board';
 
 export const timer = (ms: number) =>
   new Promise((res) => setTimeout(res, ms));

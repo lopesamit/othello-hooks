@@ -1,4 +1,4 @@
-import { ROW, COL } from '../Board';
+import { ROW, COL } from '../components/Board';
 import { timer } from './bruteForce';
 
 const directions = [

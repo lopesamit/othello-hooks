@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Button,
-  Slider,
-  Select,
-  MenuItem,
-  TextField,
-} from '@mui/material';
-import { bruteForce } from './algorithms/bruteForce';
-import { traversalDFS } from './algorithms/dfs';
-import { traversalBFS } from './algorithms/bfs';
-
-type BtnColor =
+import { Button, Slider, MenuItem, TextField } from '@mui/material';
+import { bruteForce } from '../algorithms/bruteForce';
+import { traversalDFS } from '../algorithms/dfs';
+import { traversalBFS } from '../algorithms/bfs';
+import { makeButton } from './Button';
+export type BtnColor =
   | 'inherit'
   | 'primary'
   | 'secondary'
@@ -24,44 +18,16 @@ export const ROW = 10;
 export const COL = 10;
 
 export const Board = () => {
-  const makeButton = (
-    i: number,
-    j: number,
-    variant: 'text' | 'outlined' | 'contained' | undefined,
-    color?: BtnColor,
-  ) => {
-    if (color) {
-      return (
-        <Button
-          key={j}
-          color={color as any}
-          variant="contained"
-          onClick={() => setCoordinates([i, j])}
-        >
-          {i}
-          {j}
-        </Button>
-      );
-    }
-    return (
-      <Button
-        variant={variant}
-        key={j}
-        onClick={() => setCoordinates([i, j])}
-      >
-        {i}
-        {j}
-      </Button>
-    );
-  };
-
+  const [coordinates, setCoordinates] = useState([-1, -1]);
   const freshBoard = () => {
     const board2d = new Array(ROW)
       .fill(0)
       .map((a, i) =>
         new Array(COL)
           .fill(0)
-          .map((b, j) => makeButton(i, j, 'outlined')),
+          .map((b, j) =>
+            makeButton(i, j, 'outlined', setCoordinates),
+          ),
       );
     return board2d;
   };
@@ -71,24 +37,41 @@ export const Board = () => {
   const [board, setBoardState] = useState(board2d);
   const [startPt, setStart] = useState([-1, -1]);
   const [endPt, setEnd] = useState([-1, -1]);
-  const [coordinates, setCoordinates] = useState([-1, -1]);
   const [isReset, setReset] = useState(false);
   const [algorithm, setAlgorithm] = useState('brute');
   const [sliderValue, setSliderValue] = useState(0);
   let [steps, setSteps] = useState(0);
 
   function setBoard(i: number, j: number, color?: BtnColor) {
-    board[i][j] = makeButton(i, j, 'contained');
+    board[i][j] = makeButton(i, j, 'contained', setCoordinates);
     setBoardState([...board]);
     console.log(startPt);
 
     if (startPt[0] === -1) {
       setStart([i, j]);
-      board[i][j] = makeButton(i, j, 'contained', 'success');
+      board[i][j] = makeButton(
+        i,
+        j,
+        'contained',
+        setCoordinates,
+        'success',
+      );
       setBoardState([...board]);
     } else if (endPt[0] === -1) {
       setEnd([i, j]);
-      board[i][j] = makeButton(i, j, 'contained', 'success');
+      let [startI, startJ] = startPt;
+      if (i <= startI) {
+        setStart([i, j]);
+        setEnd([startI, startJ]);
+      }
+
+      board[i][j] = makeButton(
+        i,
+        j,
+        'contained',
+        setCoordinates,
+        'success',
+      );
       setBoardState([...board]);
     }
     setSteps(steps++);
