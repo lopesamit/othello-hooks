@@ -1,10 +1,12 @@
 .App {
   align-self: center;
-  display: flex;
-  flex-flow: column;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  gap: 10px;
   padding: 20px;
+  justify-items: center;
+  justify-content: center;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-areas: 'algorithm' 'slider' 'startEndPoints' 'board';
 }
 
 .App .button {
@@ -12,37 +14,28 @@
   width: 10px;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.algorithm {
+  grid-area: algorithm;
+}
+.algorithm h2 {
+  margin-bottom: 10px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.startEndPoints {
+  grid-area: startEndPoints;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.slider {
+  grid-area: slider;
 }
 
-.App-link {
-  color: #61dafb;
+.board {
+  grid-area: board;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
+@media screen and (min-width: 400px) {
+  .App {
+    grid-template-columns: repeat(auto-fit, minmax(400px, 2fr));
+    grid-template-areas: 'algorithm' 'slider' 'startEndPoints' 'board';
   }
 }

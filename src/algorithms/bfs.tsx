@@ -23,7 +23,6 @@ export const traversalBFS = async function (
     .map(() => new Array(matrix[0].length).fill(false));
 
   const values = [];
-  let [startI, startJ] = startPt;
   const [endI, endJ] = endPt;
 
   const queue = [startPt];
