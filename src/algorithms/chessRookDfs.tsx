@@ -2,13 +2,17 @@ import { ROW, COL } from '../components/Board';
 import { timer } from './bruteForce';
 
 const directions = [
-  [-1, 0], //up
-  [0, 1], //right
-  [1, 0], //down
-  [0, -1], //left
+  [-2, -1],
+  [-1, -2],
+  [1, -2],
+  [2, -1],
+  [-2, 1],
+  [-1, 2],
+  [1, 2],
+  [2, 1],
 ];
 
-export const traversalDFS = function (
+export const chessRookDfs = function (
   startPt: number[],
   endPt: number[],
   setBoard: Function,

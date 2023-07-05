@@ -4,6 +4,8 @@ import { bruteForce } from '../algorithms/bruteForce';
 import { traversalDFS } from '../algorithms/dfs';
 import { traversalBFS } from '../algorithms/bfs';
 import { makeButton } from './Button';
+import { chessRookBfs } from '../algorithms/chessRookBfs';
+import { chessRookDfs } from '../algorithms/chessRookDfs';
 
 export type BtnColor =
   | 'inherit'
@@ -83,8 +85,12 @@ export const Board = () => {
       bruteForce([startI, startJ + 1], endPt, setBoard, sliderValue);
     } else if (algorithm === 'bfs') {
       traversalBFS([startI, startJ], endPt, setBoard, sliderValue);
-    } else {
+    } else if (algorithm === 'dfs') {
       traversalDFS([startI, startJ], endPt, setBoard, sliderValue);
+    } else if (algorithm === 'rookBfs') {
+      chessRookBfs([startI, startJ], endPt, setBoard, sliderValue);
+    } else if (algorithm === 'rookDfs') {
+      chessRookDfs([startI, startJ], endPt, setBoard, sliderValue);
     }
   }
 
@@ -123,6 +129,8 @@ export const Board = () => {
           <MenuItem value="brute">Brute force</MenuItem>
           <MenuItem value="bfs">Breath first search</MenuItem>
           <MenuItem value="dfs">Depth first search</MenuItem>
+          <MenuItem value="rookBfs">Chess rook BFS</MenuItem>
+          <MenuItem value="rookDfs">Chess rook DFS</MenuItem>
         </TextField>
       </div>
 
