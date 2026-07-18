@@ -2,10 +2,14 @@ import { ROW, COL } from '../components/Board';
 import { chainFrom, paintPath, timer } from './path';
 
 const directions = [
-  [-1, 0], //up
-  [0, 1], //right
-  [1, 0], //down
-  [0, -1], //left
+  [-2, -1],
+  [-1, -2],
+  [1, -2],
+  [2, -1],
+  [-2, 1],
+  [-1, 2],
+  [1, 2],
+  [2, 1],
 ];
 
 interface Node {
@@ -14,7 +18,7 @@ interface Node {
   parent?: Node;
 }
 
-export const traversalBFS = async function (
+export const chessKnightDfs = async function (
   startPt: number[],
   endPt: number[],
   setBoard: Function,
@@ -27,39 +31,42 @@ export const traversalBFS = async function (
     .fill(false)
     .map(() => new Array(COL).fill(false));
 
-  const startNode: Node = { row: startI, col: startJ };
-  const queue: Node[] = [startNode];
-  seen[startI][startJ] = true;
   let finalNode: Node | null = null;
 
-  while (queue.length) {
-    const current = queue.shift();
-    if (!current) continue;
-    const { row, col } = current;
+  const dfs = async function (node: Node): Promise<boolean> {
+    const { row, col } = node;
+    if (
+      row < 0 ||
+      col < 0 ||
+      row >= ROW ||
+      col >= COL ||
+      seen[row][col] ||
+      finalNode
+    ) {
+      return false;
+    }
 
+    seen[row][col] = true;
     setBoard(row, col, 'primary');
     await timer(milliseconds);
 
     if (row === endI && col === endJ) {
-      finalNode = current;
-      break;
+      finalNode = node;
+      return true;
     }
 
     for (const [dx, dy] of directions) {
-      const newRow = row + dx;
-      const newCol = col + dy;
-      if (
-        newRow >= 0 &&
-        newRow < ROW &&
-        newCol >= 0 &&
-        newCol < COL &&
-        !seen[newRow][newCol]
-      ) {
-        seen[newRow][newCol] = true;
-        queue.push({ row: newRow, col: newCol, parent: current });
-      }
+      const found = await dfs({
+        row: row + dx,
+        col: col + dy,
+        parent: node,
+      });
+      if (found) return true;
     }
-  }
+    return false;
+  };
+
+  await dfs({ row: startI, col: startJ });
 
   if (finalNode) {
     const path = chainFrom(finalNode);

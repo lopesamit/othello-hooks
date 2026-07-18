@@ -2,10 +2,14 @@ import { ROW, COL } from '../components/Board';
 import { chainFrom, paintPath, timer } from './path';
 
 const directions = [
-  [-1, 0], //up
-  [0, 1], //right
-  [1, 0], //down
-  [0, -1], //left
+  [-2, -1],
+  [-1, -2],
+  [1, -2],
+  [2, -1],
+  [-2, 1],
+  [-1, 2],
+  [1, 2],
+  [2, 1],
 ];
 
 interface Node {
@@ -14,7 +18,7 @@ interface Node {
   parent?: Node;
 }
 
-export const traversalBFS = async function (
+export const chessKnightBfs = async function (
   startPt: number[],
   endPt: number[],
   setBoard: Function,

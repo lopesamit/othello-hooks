@@ -1,11 +1,16 @@
 import { ROW, COL } from '../components/Board';
-import { chainFrom, paintPath, timer } from './path';
+import { timer } from './bruteForce';
 
+// A chess king moves one square in any of the 8 directions.
 const directions = [
-  [-1, 0], //up
-  [0, 1], //right
-  [1, 0], //down
-  [0, -1], //left
+  [-1, -1],
+  [-1, 0],
+  [-1, 1],
+  [0, -1],
+  [0, 1],
+  [1, -1],
+  [1, 0],
+  [1, 1],
 ];
 
 interface Node {
@@ -14,7 +19,7 @@ interface Node {
   parent?: Node;
 }
 
-export const traversalBFS = async function (
+export const kingBfs = async function (
   startPt: number[],
   endPt: number[],
   setBoard: Function,
@@ -32,7 +37,7 @@ export const traversalBFS = async function (
   seen[startI][startJ] = true;
   let finalNode: Node | null = null;
 
-  while (queue.length) {
+  while (queue.length > 0) {
     const current = queue.shift();
     if (!current) continue;
     const { row, col } = current;
@@ -62,8 +67,16 @@ export const traversalBFS = async function (
   }
 
   if (finalNode) {
-    const path = chainFrom(finalNode);
-    await paintPath(path, setBoard, milliseconds);
+    const path: number[][] = [];
+    let node: Node | undefined = finalNode;
+    while (node) {
+      path.unshift([node.row, node.col]);
+      node = node.parent;
+    }
+    for (const [row, col] of path) {
+      setBoard(row, col, 'success');
+      await timer(milliseconds);
+    }
     return path;
   }
   return null;

@@ -1,7 +1,7 @@
 import { ROW, COL } from '../components/Board';
+import { manhattanPath, paintPath, timer } from './path';
 
-export const timer = (ms: number) =>
-  new Promise((res) => setTimeout(res, ms));
+export { timer };
 
 export const bruteForce = async (
   startPt: number[],
@@ -9,24 +9,32 @@ export const bruteForce = async (
   setBoard: Function,
   milliseconds: number,
 ) => {
-  let [startI, startJ] = startPt;
+  const [startI, startJ] = startPt;
   const [endI, endJ] = endPt;
 
-  for (let i = 0; i < ROW; i++) {
-    for (let j = 0; j < COL; j++) {
-      let iStart = i + startI;
-      let jStart = j + startJ;
+  // Row-major scan starting at the cell after the start point.
+  let i = startI;
+  let j = startJ + 1;
+  if (j >= COL) {
+    i += 1;
+    j = 0;
+  }
 
-      if (iStart === ROW || jStart === COL) {
-        startJ = 0;
-        continue;
-      }
-
-      if (iStart === endI && jStart === endJ) {
+  for (; i < ROW; i++) {
+    for (; j < COL; j++) {
+      if (i === endI && j === endJ) {
+        setBoard(i, j, 'primary');
+        await timer(milliseconds);
+        await paintPath(
+          manhattanPath(startPt, endPt),
+          setBoard,
+          milliseconds,
+        );
         return;
       }
-      setBoard(iStart, jStart);
+      setBoard(i, j, 'primary');
       await timer(milliseconds);
     }
+    j = 0;
   }
 };

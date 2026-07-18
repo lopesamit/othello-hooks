@@ -1,12 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Slider, MenuItem, TextField } from '@mui/material';
+import React, { useRef, useState } from 'react';
 import { bruteForce } from '../algorithms/bruteForce';
 import { traversalDFS } from '../algorithms/dfs';
 import { traversalBFS } from '../algorithms/bfs';
-import { makeButton } from './Button';
-import { chessRookBfs } from '../algorithms/chessRookBfs';
-import { chessRookDfs } from '../algorithms/chessRookDfs';
+import { chessKnightBfs } from '../algorithms/chessKnightBfs';
+import { chessKnightDfs } from '../algorithms/chessKnightDfs';
+import { dijkstra } from '../algorithms/dijkstra';
+import { astar } from '../algorithms/astar';
+import { bidirectional } from '../algorithms/bidirectional';
+import { greedyBestFirst } from '../algorithms/greedyBestFirst';
+import { kingBfs } from '../algorithms/kingBfs';
+import { spiral } from '../algorithms/spiral';
+import { randomWalk } from '../algorithms/randomWalk';
 
+// Kept for the algorithms' setBoard(i, j, color) call signature.
 export type BtnColor =
   | 'inherit'
   | 'primary'
@@ -20,167 +26,299 @@ export type BtnColor =
 export const ROW = 10;
 export const COL = 10;
 
+type CellState = 'empty' | 'visited' | 'path';
+
+interface Cell {
+  state: CellState;
+  order: number;
+}
+
+type RunState = 'idle' | 'running' | 'done';
+
+const ALGORITHMS = [
+  { id: 'brute', name: 'Brute Force', tag: 'Row-by-row scan' },
+  { id: 'bfs', name: 'Breadth-First', tag: 'Ripples outward' },
+  { id: 'dfs', name: 'Depth-First', tag: 'Dives deep first' },
+  { id: 'dijkstra', name: 'Dijkstra', tag: 'Cheapest first' },
+  { id: 'astar', name: 'A* Search', tag: 'Heuristic guided' },
+  { id: 'greedy', name: 'Greedy Best-First', tag: 'Beeline to target' },
+  { id: 'bidirectional', name: 'Bidirectional', tag: 'Meets in middle' },
+  { id: 'knightBfs', name: 'Knight BFS', tag: 'L-shaped ripples' },
+  { id: 'knightDfs', name: 'Knight DFS', tag: 'L-shaped dives' },
+  { id: 'kingBfs', name: 'King BFS', tag: '8-way ripples' },
+  { id: 'spiral', name: 'Spiral Scan', tag: 'Rings outward' },
+  { id: 'randomWalk', name: 'Random Walk', tag: 'Drunken wander' },
+];
+
+type AlgoFn = (
+  startPt: number[],
+  endPt: number[],
+  setBoard: Function,
+  milliseconds: number,
+) => Promise<unknown>;
+
+const ALGO_FNS: Record<string, AlgoFn> = {
+  brute: bruteForce,
+  bfs: traversalBFS,
+  dfs: traversalDFS,
+  dijkstra,
+  astar,
+  greedy: greedyBestFirst,
+  bidirectional,
+  knightBfs: chessKnightBfs,
+  knightDfs: chessKnightDfs,
+  kingBfs,
+  spiral,
+  randomWalk,
+};
+
+const freshGrid = (): Cell[][] =>
+  new Array(ROW)
+    .fill(0)
+    .map(() =>
+      new Array(COL).fill(0).map(() => ({ state: 'empty' as CellState, order: 0 })),
+    );
+
 export const Board = () => {
-  const [coordinates, setCoordinates] = useState([-1, -1]);
-  const freshBoard = () => {
-    const board2d = new Array(ROW)
-      .fill(0)
-      .map((a, i) =>
-        new Array(COL)
-          .fill(0)
-          .map((b, j) =>
-            makeButton(i, j, 'outlined', setCoordinates),
-          ),
-      );
-    return board2d;
-  };
+  const [grid, setGrid] = useState<Cell[][]>(freshGrid);
+  const [startPt, setStart] = useState<number[]>([-1, -1]);
+  const [endPt, setEnd] = useState<number[]>([-1, -1]);
+  const [algorithm, setAlgorithm] = useState('bfs');
+  const [delay, setDelay] = useState(50);
+  const [steps, setSteps] = useState(0);
+  const [runState, setRunState] = useState<RunState>('idle');
+  const [boardEpoch, setBoardEpoch] = useState(0);
+  const orderRef = useRef(0);
 
-  const board2d = freshBoard();
+  const startSelected = startPt[0] !== -1;
+  const endSelected = endPt[0] !== -1;
 
-  const [board, setBoardState] = useState(board2d);
-  const [startPt, setStart] = useState([-1, -1]);
-  const [endPt, setEnd] = useState([-1, -1]);
-  const [isReset, setReset] = useState(false);
-  const [algorithm, setAlgorithm] = useState('brute');
-  const [sliderValue, setSliderValue] = useState(0);
-  let [steps, setSteps] = useState(0);
+  // Passed to the algorithms as their `setBoard` callback.
+  function paintCell(i: number, j: number, color: BtnColor = 'primary') {
+    const state: CellState = color === 'success' ? 'path' : 'visited';
+    const order = orderRef.current++;
+    setSteps((s) => s + 1);
+    setGrid((prev) => {
+      const next = prev.map((row) => row.slice());
+      next[i][j] = { state, order };
+      return next;
+    });
+  }
 
-  function setBoard(i: number, j: number, color?: BtnColor) {
-    board[i][j] = makeButton(i, j, 'contained', setCoordinates);
-    setBoardState([...board]);
+  function clearWalk() {
+    orderRef.current = 0;
+    setSteps(0);
+    setGrid(freshGrid());
+  }
 
-    if (startPt[0] === -1) {
+  function handleCellClick(i: number, j: number) {
+    if (runState === 'running') return;
+    if (!startSelected) {
       setStart([i, j]);
-      board[i][j] = makeButton(
-        i,
-        j,
-        'contained',
-        setCoordinates,
-        'success',
-      );
-      setBoardState([...board]);
-    } else if (endPt[0] === -1) {
-      setEnd([i, j]);
-      let [startI, startJ] = startPt;
-      if (i <= startI) {
+    } else if (!endSelected) {
+      if (i === startPt[0] && j === startPt[1]) return;
+      // Keep the start point on the earlier row so row-major scans can reach the end.
+      if (i <= startPt[0]) {
+        setEnd(startPt);
         setStart([i, j]);
-        setEnd([startI, startJ]);
+      } else {
+        setEnd([i, j]);
       }
-
-      board[i][j] = makeButton(
-        i,
-        j,
-        'contained',
-        setCoordinates,
-        'success',
-      );
-      setBoardState([...board]);
-    }
-    setSteps(steps++);
-  }
-
-  function callAlgo() {
-    const [startI, startJ] = startPt;
-    if (algorithm === 'brute') {
-      bruteForce([startI, startJ + 1], endPt, setBoard, sliderValue);
-    } else if (algorithm === 'bfs') {
-      traversalBFS([startI, startJ], endPt, setBoard, sliderValue);
-    } else if (algorithm === 'dfs') {
-      traversalDFS([startI, startJ], endPt, setBoard, sliderValue);
-    } else if (algorithm === 'rookBfs') {
-      chessRookBfs([startI, startJ], endPt, setBoard, sliderValue);
-    } else if (algorithm === 'rookDfs') {
-      chessRookDfs([startI, startJ], endPt, setBoard, sliderValue);
     }
   }
 
-  useEffect(() => {
-    const [i, j] = coordinates;
-    if (i !== -1 && j !== -1) {
-      setBoard(i, j);
-    }
-    if (isReset) {
-      setStart([-1, -1]);
-      setEnd([-1, -1]);
-      const board2d = freshBoard();
-      setBoardState([...board2d]);
-      setReset(false);
-      setCoordinates([-1, -1]);
-      setSteps(0);
-    }
-  }, [coordinates, isReset]);
+  function reset() {
+    clearWalk();
+    setStart([-1, -1]);
+    setEnd([-1, -1]);
+    setRunState('idle');
+    setBoardEpoch((e) => e + 1);
+  }
 
-  const startSelected = !startPt.includes(-1);
-  const endSelected = !endPt.includes(-1);
+  function pickAlgorithm(id: string) {
+    if (runState === 'running') return;
+    setAlgorithm(id);
+    if (runState === 'done') {
+      clearWalk();
+      setRunState('idle');
+    }
+  }
 
-  const disabled = startSelected && endSelected;
+  async function run() {
+    if (!startSelected || !endSelected || runState === 'running') return;
+    clearWalk();
+    setRunState('running');
+    try {
+      const fn = ALGO_FNS[algorithm];
+      if (fn) {
+        await fn(startPt, endPt, paintCell, delay);
+      }
+    } finally {
+      setRunState('done');
+    }
+  }
+
+  const status = !startSelected
+    ? 'Tap any cell to place the start point'
+    : !endSelected
+    ? 'Now tap a cell to place the target'
+    : runState === 'running'
+    ? 'Exploring the grid\u2026'
+    : runState === 'done'
+    ? `Search complete \u2014 ${steps} steps`
+    : 'Ready \u2014 press Visualize';
+
+  const canRun = startSelected && endSelected && runState !== 'running';
+  const selectedAlgo = ALGORITHMS.find((a) => a.id === algorithm);
 
   return (
-    <>
-      <div className="algorithm">
-        <h2>Algorithm</h2>
-        <TextField
-          label="Algorithm"
-          value={algorithm}
-          placeholder="Select"
-          select
-          onChange={(e) => setAlgorithm(e.target.value as string)}
-        >
-          <MenuItem value="brute">Brute force</MenuItem>
-          <MenuItem value="bfs">Breath first search</MenuItem>
-          <MenuItem value="dfs">Depth first search</MenuItem>
-          <MenuItem value="rookBfs">Chess rook BFS</MenuItem>
-          <MenuItem value="rookDfs">Chess rook DFS</MenuItem>
-        </TextField>
+    <div className="shell">
+      <div className="aurora" aria-hidden="true">
+        <div className="blob blob-a" />
+        <div className="blob blob-b" />
+        <div className="blob blob-c" />
       </div>
+      <div className="noise" aria-hidden="true" />
 
-      <div className="startEndPoints">
-        <h2>Select starting and ending box</h2>
-        <div>
-          Start: {startPt[0] !== -1 ? startPt : ''} End:{' '}
-          {endPt[0] !== -1 ? endPt : ''}
-        </div>
-        <Button variant="contained" onClick={() => setReset(true)}>
-          Reset
-        </Button>
-        <Button
-          variant="contained"
-          disabled={!disabled}
-          onClick={() => callAlgo()}
-        >
-          Start
-        </Button>
-      </div>
+      <header className="hero">
+        <span className="badge">10 &times; 10 grid playground</span>
+        <h1>
+          Path<span className="grad">finder</span>
+        </h1>
+        <p>
+          Pick two points, choose an algorithm, and watch it carve a route
+          across the board.
+        </p>
+      </header>
 
-      <div className="slider">
-        <h2>Select time in ms </h2>
+      <main className="layout">
+        <aside className="panel">
+          <section className="panel-section">
+            <h2 className="section-label">Algorithm</h2>
+            <div className="algo-grid" role="radiogroup" aria-label="Algorithm">
+              {ALGORITHMS.map((a) => (
+                <button
+                  key={a.id}
+                  role="radio"
+                  aria-checked={algorithm === a.id}
+                  className={`algo-pill${algorithm === a.id ? ' selected' : ''}`}
+                  onClick={() => pickAlgorithm(a.id)}
+                  disabled={runState === 'running'}
+                >
+                  <span className="algo-name">{a.name}</span>
+                  <span className="algo-tag">{a.tag}</span>
+                </button>
+              ))}
+            </div>
+          </section>
 
-        <Slider
-          aria-label="miliseconds"
-          defaultValue={0}
-          valueLabelDisplay={'auto'}
-          step={50}
-          marks
-          min={0}
-          max={500}
-          value={sliderValue}
-          getAriaValueText={() => `${sliderValue} ms`}
-          onChange={(e, value: number | number[]) =>
-            Array.isArray(value)
-              ? setSliderValue(value[0])
-              : setSliderValue(value)
-          }
-        />
-      </div>
-      <div className="board">
-        <p>Steps: {steps}</p>
-        {board.map((a, i) => (
-          <div key={i}>
-            {a.map((b, j) => board[i][j])}
-            <br />
+          <section className="panel-section">
+            <div className="section-row">
+              <h2 className="section-label">Step delay</h2>
+              <span className="delay-value">{delay} ms</span>
+            </div>
+            <input
+              className="speed"
+              type="range"
+              min={0}
+              max={500}
+              step={50}
+              value={delay}
+              aria-label="Step delay in milliseconds"
+              style={{ '--fill': `${(delay / 500) * 100}%` } as React.CSSProperties}
+              onChange={(e) => setDelay(Number(e.target.value))}
+            />
+            <div className="speed-ends">
+              <span>instant</span>
+              <span>slow-mo</span>
+            </div>
+          </section>
+
+          <section className="panel-section">
+            <h2 className="section-label">Legend</h2>
+            <ul className="legend">
+              <li>
+                <i className="swatch swatch-start" /> Start
+              </li>
+              <li>
+                <i className="swatch swatch-end" /> Target
+              </li>
+              <li>
+                <i className="swatch swatch-visited" /> Explored
+              </li>
+              <li>
+                <i className="swatch swatch-path" /> Path
+              </li>
+            </ul>
+          </section>
+
+          <div className="actions">
+            <button className="btn btn-primary" disabled={!canRun} onClick={run}>
+              {runState === 'done' ? 'Run again' : 'Visualize'}
+            </button>
+            <button className="btn btn-ghost" onClick={reset}>
+              Reset
+            </button>
           </div>
-        ))}
-      </div>
-    </>
+        </aside>
+
+        <section className={`board-card${runState === 'running' ? ' running' : ''}`}>
+          <div className="board-top">
+            <p className="status" role="status">
+              <span
+                className={`status-dot${runState === 'running' ? ' live' : ''}`}
+              />
+              {status}
+            </p>
+            <div className="chips">
+              {startSelected && (
+                <span className="chip chip-start">
+                  A&nbsp;{startPt[0]},{startPt[1]}
+                </span>
+              )}
+              {endSelected && (
+                <span className="chip chip-end">
+                  B&nbsp;{endPt[0]},{endPt[1]}
+                </span>
+              )}
+              <span className="chip">{steps} steps</span>
+            </div>
+          </div>
+
+          <div className="grid" key={boardEpoch}>
+            {grid.map((row, i) =>
+              row.map((cell, j) => {
+                const isStart = i === startPt[0] && j === startPt[1];
+                const isEnd = i === endPt[0] && j === endPt[1];
+                let cls = 'cell';
+                if (cell.state === 'visited') cls += ' visited';
+                if (cell.state === 'path') cls += ' path';
+                if (isStart) cls += ' start';
+                if (isEnd) cls += ' end';
+                return (
+                  <button
+                    key={`${i}-${j}`}
+                    className={cls}
+                    aria-label={`Cell ${i}, ${j}`}
+                    style={
+                      {
+                        '--d': `${(i + j) * 22}ms`,
+                        '--o': cell.order,
+                      } as React.CSSProperties
+                    }
+                    onClick={() => handleCellClick(i, j)}
+                  />
+                );
+              }),
+            )}
+          </div>
+
+          <p className="board-footnote">
+            {selectedAlgo ? selectedAlgo.name : ''} &middot;{' '}
+            {selectedAlgo ? selectedAlgo.tag.toLowerCase() : ''}
+          </p>
+        </section>
+      </main>
+    </div>
   );
 };
