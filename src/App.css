@@ -153,10 +153,6 @@
     grid-template-columns: minmax(0, 640px);
     justify-content: center;
   }
-
-  .board-card {
-    order: -1;
-  }
 }
 
 /* ---------- glass panel ---------- */
@@ -633,6 +629,90 @@
   font-size: 12px;
   letter-spacing: 0.06em;
   color: var(--text-faint);
+}
+
+/* ---------- request form ---------- */
+
+.request-card {
+  width: 100%;
+  max-width: 1060px;
+  margin-top: 24px;
+  padding: clamp(20px, 3vw, 28px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  animation: rise 0.8s 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.request-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 520px;
+  margin-top: 14px;
+}
+
+.request-form .btn {
+  align-self: flex-start;
+  flex: 0 0 auto;
+  min-width: 160px;
+}
+
+.bot-field {
+  position: absolute !important;
+  left: -10000px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.field input,
+.field textarea {
+  font: inherit;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: var(--accent-2);
+  background: var(--surface-strong);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--text-faint);
+}
+
+.request-thanks {
+  color: var(--start);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.request-error {
+  color: var(--end);
+  font-size: 13px;
 }
 
 /* ---------- shared entrance ---------- */

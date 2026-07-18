@@ -34,6 +34,16 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
+    <!-- Netlify Forms: static form so the build can detect the fields -->
+    <form
+      name="algorithm-requests"
+      netlify
+      netlify-honeypot="bot-field"
+      hidden
+    >
+      <input type="text" name="name" />
+      <textarea name="request"></textarea>
+    </form>
     <div id="root"></div>
     <!--
       This HTML file is a template.

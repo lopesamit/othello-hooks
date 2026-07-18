@@ -1,5 +1,45 @@
+let activeSignal: AbortSignal | null = null;
+
+export function setActiveSignal(signal: AbortSignal | null) {
+  activeSignal = signal;
+}
+
+export function isRunAborted() {
+  return !!activeSignal?.aborted;
+}
+
+class AbortError extends Error {
+  name = 'AbortError';
+  constructor() {
+    super('Algorithm aborted');
+  }
+}
+
+export function throwIfAborted() {
+  if (isRunAborted()) throw new AbortError();
+}
+
 export const timer = (ms: number) =>
-  new Promise((res) => setTimeout(res, ms));
+  new Promise<void>((resolve, reject) => {
+    if (isRunAborted()) {
+      reject(new AbortError());
+      return;
+    }
+
+    const signal = activeSignal;
+    const onAbort = () => {
+      clearTimeout(id);
+      reject(new AbortError());
+    };
+
+    const id = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      if (signal?.aborted) reject(new AbortError());
+      else resolve();
+    }, ms);
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
 
 // Walk parent pointers from the end node back to the start.
 export function chainFrom(
@@ -40,6 +80,7 @@ export async function paintPath(
   milliseconds: number,
 ) {
   for (const [row, col] of path) {
+    throwIfAborted();
     setBoard(row, col, 'success');
     await timer(milliseconds);
   }

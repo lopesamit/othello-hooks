@@ -11,6 +11,8 @@ import { greedyBestFirst } from '../algorithms/greedyBestFirst';
 import { kingBfs } from '../algorithms/kingBfs';
 import { spiral } from '../algorithms/spiral';
 import { randomWalk } from '../algorithms/randomWalk';
+import { isRunAborted, setActiveSignal } from '../algorithms/path';
+import { RequestForm } from './RequestForm';
 
 // Kept for the algorithms' setBoard(i, j, color) call signature.
 export type BtnColor =
@@ -89,16 +91,22 @@ export const Board = () => {
   const [runState, setRunState] = useState<RunState>('idle');
   const [boardEpoch, setBoardEpoch] = useState(0);
   const orderRef = useRef(0);
+  const boardRef = useRef<HTMLElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const paintGenRef = useRef(0);
 
   const startSelected = startPt[0] !== -1;
   const endSelected = endPt[0] !== -1;
 
   // Passed to the algorithms as their `setBoard` callback.
   function paintCell(i: number, j: number, color: BtnColor = 'primary') {
+    if (isRunAborted()) return;
+    const gen = paintGenRef.current;
     const state: CellState = color === 'success' ? 'path' : 'visited';
     const order = orderRef.current++;
-    setSteps((s) => s + 1);
+    setSteps((s) => (paintGenRef.current === gen ? s + 1 : s));
     setGrid((prev) => {
+      if (paintGenRef.current !== gen || isRunAborted()) return prev;
       const next = prev.map((row) => row.slice());
       next[i][j] = { state, order };
       return next;
@@ -109,6 +117,14 @@ export const Board = () => {
     orderRef.current = 0;
     setSteps(0);
     setGrid(freshGrid());
+  }
+
+  function stopRun() {
+    // Keep the aborted signal installed so late paintCell/timer calls stay no-ops
+    // until the next run replaces it via setActiveSignal.
+    paintGenRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
   }
 
   function handleCellClick(i: number, j: number) {
@@ -128,6 +144,7 @@ export const Board = () => {
   }
 
   function reset() {
+    stopRun();
     clearWalk();
     setStart([-1, -1]);
     setEnd([-1, -1]);
@@ -146,15 +163,29 @@ export const Board = () => {
 
   async function run() {
     if (!startSelected || !endSelected || runState === 'running') return;
+    stopRun();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    setActiveSignal(ac.signal);
     clearWalk();
     setRunState('running');
+    // On mobile the board sits below the controls — bring it into view.
+    boardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     try {
       const fn = ALGO_FNS[algorithm];
       if (fn) {
         await fn(startPt, endPt, paintCell, delay);
       }
+      if (!ac.signal.aborted) {
+        setRunState('done');
+      }
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') throw err;
     } finally {
-      setRunState('done');
+      if (abortRef.current === ac) {
+        abortRef.current = null;
+        if (!ac.signal.aborted) setActiveSignal(null);
+      }
     }
   }
 
@@ -234,6 +265,15 @@ export const Board = () => {
             </div>
           </section>
 
+          <div className="actions">
+            <button className="btn btn-primary" disabled={!canRun} onClick={run}>
+              {runState === 'done' ? 'Run again' : 'Visualize'}
+            </button>
+            <button className="btn btn-ghost" onClick={reset}>
+              Reset
+            </button>
+          </div>
+
           <section className="panel-section">
             <h2 className="section-label">Legend</h2>
             <ul className="legend">
@@ -251,18 +291,12 @@ export const Board = () => {
               </li>
             </ul>
           </section>
-
-          <div className="actions">
-            <button className="btn btn-primary" disabled={!canRun} onClick={run}>
-              {runState === 'done' ? 'Run again' : 'Visualize'}
-            </button>
-            <button className="btn btn-ghost" onClick={reset}>
-              Reset
-            </button>
-          </div>
         </aside>
 
-        <section className={`board-card${runState === 'running' ? ' running' : ''}`}>
+        <section
+          ref={boardRef}
+          className={`board-card${runState === 'running' ? ' running' : ''}`}
+        >
           <div className="board-top">
             <p className="status" role="status">
               <span
@@ -319,6 +353,8 @@ export const Board = () => {
           </p>
         </section>
       </main>
+
+      <RequestForm />
     </div>
   );
 };
